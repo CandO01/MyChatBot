@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>ChatBot</title>
+
+    </head>
+		<style>
+			body{
+				font-family: Arial;
+				margin: 0;
+				padding: 0;
+			}
+			.send-button{
+				background-color: rgb(25, 135, 84);
+				color: white;
+				padding: 12px 20px;
+				border: none;
+				font-size: 15px;
+				border-radius: 10px;
+				margin-left: 10px;
+				cursor: pointer;
+			}
+			.chat-input{
+				border-radius: 10px;
+				padding: 12px 15px;
+				border-width: 1px;
+				font-size: 15px;
+				flex-grow: 1;
+				
+			}
+			.chat-input-container{
+				display: flex;
+				margin-bottom: 60px;
+			}
+			.app-container{
+				max-width: 600px;
+				margin-left: auto;
+				margin-right: auto;
+				height: 100vh;
+				display: flex;
+				flex-direction: column;
+			}
+			.chat-message-user{
+				display: flex;
+				justify-content: end;
+				align-items: center;
+			}
+			.chat-message-robot{
+				display: flex;
+				align-items: center;
+			}
+			.chat-message-text{
+				background-color: rgb(238,238,238);
+				padding: 15px 20px;
+				border-radius: 10px;
+				margin-right: 10px;
+				margin-left: 10px;
+				margin-bottom: 20px;
+				max-width: 300px;
+			}
+			.chat-message-profile{
+				width: 52px;
+				height: 50px;
+				border-radius: 50%;
+			}
+			.chat-messages-container{
+				flex-grow: 1;
+				margin-top: 10px;
+				overflow: scroll;
+				scrollbar-width: none;
+				-ms-overflow-style: none
+			}
+			.welcome-message {
+        color: rgb(120, 120, 120);
+        text-align: center;
+				font-size: 20px;
+				margin-top: 20px;
+      }
+			.loading-spinner {
+        height: 40px;
+        margin: -15px;
+      }
+		</style>
+    <body>
+        
+        <div class="chatbot-container"></div>
+
+        <script src="https://unpkg.com/supersimpledev/react.js"></script>
+        <script src="https://unpkg.com/supersimpledev/react-dom.js"></script>
+
+				<!-- This is an external library for chatbot -->
+				<script src="https://unpkg.com/supersimpledev/chatbot.js"></script>
+
+        <script src="https://unpkg.com/supersimpledev/babel.js"></script>
+        <script type="text/babel">
+
+                function ChatInput({chatMessages, setChatMessages }){
+									const [inputText, setInputText ] = React.useState('')
+
+									function saveInputText(event){
+										setInputText(event.target.value)
+									}
+								
+											async function sendMessage() {
+												// Clear the textbox at the top now because the Chatbot
+												// will take some time to load the response. We want
+												// to clear the textbox immediately rather waiting
+												// for the Chatbot to finish loading.
+												setInputText('');
+
+												const newChatMessages = [
+													...chatMessages,
+													{
+														message: inputText,
+														sender: 'user',
+														id: crypto.randomUUID()
+													}
+												];
+
+												setChatMessages(newChatMessages);
+												setChatMessages([
+													...newChatMessages,
+													// This creates a temporary Loading... message.
+													// Because we don't save this message in newChatMessages,
+													// it will be removed later, when we add the response.
+													{
+														message: <img src="loading-spinner.gif" className="loading-spinner" />,
+														sender: 'robot',
+														id: crypto.randomUUID()
+													}
+												]);
+
+												
+												const response = await Chatbot.getResponseAsync(inputText);
+												setChatMessages([
+													...newChatMessages,
+													{
+														message: response,
+														sender: 'robot',
+														id: crypto.randomUUID()
+													}
+												]);
+
+												setInputText('');
+											}
+									
+                    return(
+                        <div className = "chat-input-container">
+                            <input 
+                                placeholder ="Send a message to ChatBot" 
+                                size = "30"
+																onChange = {saveInputText}
+																value = {inputText}//This is called a controlled input using a value property
+																className = 'chat-input'
+                            />
+                            <button
+															onClick = {sendMessage}
+															className = 'send-button'
+														>Send</button>
+                        </div>
+                    )
+                }
+
+								// function ChatMessage(props){
+								// 	const textMessage = props.message
+                //      const senderName = props.sender
+                //      if(senderName === 'robot'){
+                //         return(
+                //             <div>
+                //                 <img src="robot.png" width = "50" />
+                //                 {textMessage}
+                //         </div>
+                //         );
+                //      }
+								// 		 else{
+								// 			return(
+                //             <div>
+								// 							{textMessage}
+                //                 <img src="user.png" width = "50" />
+                //         </div>
+                //         );
+								// 		 }
+                // }
+
+                function ChatMessage({message, sender}){
+									    //this shortcuts is also known as destructuring 
+                    //  const{textMessage, senderName } = props
+                     
+                      return(
+                        <div className ={
+														sender === 'user'
+														? 'chat-message-user'
+														: 'chat-message-robot'
+												}>
+                            {sender === 'robot' && (
+                                <img src="robot.png" className ='chat-message-profile' />
+                            )}
+														<div className = 'chat-message-text'>
+															{message}
+														</div>
+                           
+                            {sender === 'user' && (
+                                <img src="caro.jpeg" className ='chat-message-profile' />
+                            )}
+                            
+                        </div>
+                      )
+                }
+
+								function ChatMessages({chatMessages }){
+									const chatMessageRef = React.useRef(null)
+									 React.useEffect(()=>{
+												const containerElem = chatMessageRef.current;
+												if(containerElem){
+														containerElem.scrollTop = containerElem.scrollHeight;
+												}
+
+									 }, [chatMessages])
+												
+										return(
+											<div className = 'chat-messages-container'
+									 				ref = {chatMessageRef}
+											>
+													{chatMessages.map((caroMessage)=>{
+															return(
+																<ChatMessage 
+																	message ={caroMessage.message}
+																	sender ={caroMessage.sender}
+																	key ={caroMessage.id}
+																/>
+															)
+													})}
+										  </div>
+												)
+								}
+
+                function App(){
+									//This was moved from component ChatMessages to the main component App. This is called lifting the state
+									// const [chatMessages, setChatMessages] = React.useState([ 
+									// 											{
+									// 												message:"hello chatbot", 
+									// 												sender:"user",
+									// 												id: 'id1'
+									// 											},
+
+									// 											{
+									// 												message:"Hello! How can I help you?", 
+									// 												sender:"robot",
+									// 												id: 'id2'
+									// 											},
+
+									// 											{
+									// 												message:"can you get me today's date", 
+									// 												sender: "user",
+									// 												id: 'id3' 
+									// 											},
+
+									// 											{
+									// 												message:"Today is December 2", 
+									// 												sender: "robot",
+									// 												id: 'id4'
+									// 											}])
+										//NB:React.useState returns an array
+										// useState destructuring. This is also known as array destructuring which is also similar to object destructuring
+										const [chatMessages, setChatMessages] = React.useState([]);
+										// const [ChatMessages, setChatMessages ] = array1
+										//the first array is a data
+										// const chatMessages = array1[0];
+										//The second array is a function. This function let us undate the data which is the first array
+										// const setChatMessages = array1[1]; 
+								   
+									
+                    return(
+                        <div className = 'app-container'>
+													{chatMessages.length === 0 && (
+              								<marquee className="welcome-message">
+               									 Welcome to the chatbot project! This project was created by Matthew Olanipekun Olawale. This is just like an openAI. Although it is limited to just asking of date, flipping coins and rolling a die. Latest upgrade is coming up soon. Enjoy this chatbot.  Send a message using the textbox below.
+              								</marquee>
+            							)}
+														<ChatMessages
+															chatMessages={chatMessages}
+														/>
+														
+														<ChatInput
+															chatMessages = {chatMessages}
+															setChatMessages = {setChatMessages}
+														/>
+                        </div>
+                    )
+                }
+        
+            const chatbox = document.querySelector('.chatbot-container');
+
+            const root = ReactDOM.createRoot(chatbox);
+            root.render(<App />);
+        </script>
+    </body>
+</html>
